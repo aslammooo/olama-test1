@@ -1,0 +1,25 @@
+{
+  "name": "Ollama Codespace",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": []
+    }
+  },
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+  "postStartCommand": "nohup bash .devcontainer/start.sh > /tmp/start.log 2>&1 &",
+  "portsAttributes": {
+    "11434": {
+      "label": "Ollama API",
+      "onAutoForward": "openPublic"
+    }
+  },
+  "forwardPorts": [
+    11434
+  ]
+}
