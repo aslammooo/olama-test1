@@ -1,44 +1,38 @@
 #!/bin/bash
 
-LOG_DIR="logs"
-mkdir -p "$LOG_DIR"
-
+MAIN_FILE="maina.py"
 MODEL_NAME="gemma4:31b-cloud"
 RESTART_INTERVAL=10800
 
-echo "🚀 بدء تشغيل نظام Ollama..."
-
 if [ -n "$OLLAMA_API_KEY" ]; then
-    echo "🔑 تم العثور على OLLAMA_API_KEY، جاري التصدير..."
     export OLLAMA_API_KEY="$OLLAMA_API_KEY"
+    echo "🔑 تم تحميل OLLAMA_API_KEY."
 else
-    echo "⚠️ تحذير: OLLAMA_API_KEY غير موجود كـ Codespaces Secret."
-    echo "   الموديلات من نوع Cloud (مثل gemma4:31b-cloud) لن تعمل بدونه."
+    echo "⚠️ تحذير: OLLAMA_API_KEY غير موجود في البيئة."
 fi
 
 start_ollama() {
-    nohup ollama serve > "$LOG_DIR/ollama.log" 2>&1 &
-    echo "Ollama PID: $!"
+    echo "🚀 [$(date)] تشغيل ollama serve..."
+    nohup ollama serve > /tmp/ollama.log 2>&1 &
     for i in $(seq 1 30); do
-        if curl -s http://localhost:11434/api/tags > /dev/null; then
-            echo "✅ Ollama API شغال على المنفذ 11434"
+        if curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
+            echo "✅ Ollama يستجيب على المنفذ 11434."
             return 0
         fi
         sleep 2
     done
-    echo "❌ فشل تشغيل Ollama API بعد عدة محاولات"
-    return 1
+    echo "❌ Ollama لم يستجب بعد 60 ثانية."
 }
 
 pull_model() {
-    echo "📥 جاري سحب/التحقق من الموديل: $MODEL_NAME"
-    ollama pull "$MODEL_NAME" 2>&1 | tee -a "$LOG_DIR/ollama.log"
+    echo "⬇️ [$(date)] سحب الموديل $MODEL_NAME..."
+    ollama pull "$MODEL_NAME" || echo "⚠️ فشل سحب الموديل، سيُعاد المحاولة لاحقاً"
 }
 
 supervise_ollama() {
     while true; do
         if ! pgrep -f "ollama serve" > /dev/null; then
-            echo "⚠️ [$(date)] Ollama متوقف، جاري إعادة تشغيله..."
+            echo "⚠️ [$(date)] ollama serve متوقفة، إعادة تشغيلها..."
             start_ollama
         fi
         sleep 60
@@ -47,10 +41,16 @@ supervise_ollama() {
 
 run_bot_loop() {
     while true; do
-        echo "🤖 [$(date)] بدء تشغيل maina.py (إعادة تشغيل تلقائي كل 3 ساعة)"
-        timeout "$RESTART_INTERVAL" python3 maina.py >> "$LOG_DIR/bot.log" 2>&1
+        echo "🤖 [$(date)] تشغيل $MAIN_FILE (مهلة $RESTART_INTERVAL ثانية)..."
+        if [ ! -f "$MAIN_FILE" ]; then
+            echo "❌ [$(date)] الملف $MAIN_FILE غير موجود في المجلد الحالي! تحقق من اسم الملف."
+            ls -la *.py 2>/dev/null
+            sleep 30
+            continue
+        fi
+        timeout "$RESTART_INTERVAL" python3 "$MAIN_FILE"
         EXIT_CODE=$?
-        echo "⚠️ [$(date)] maina.py توقف (exit code: $EXIT_CODE)، إعادة التشغيل خلال 5 ثواني..."
+        echo "⚠️ [$(date)] $MAIN_FILE توقف (exit code: $EXIT_CODE)، إعادة التشغيل خلال 5 ثواني..."
         sleep 5
     done
 }
