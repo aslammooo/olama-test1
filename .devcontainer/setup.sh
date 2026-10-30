@@ -1,15 +1,14 @@
 #!/bin/bash
 set -e
+echo "🔧 بدء تثبيت المتطلبات..."
 
-echo "🔧 جاري تثبيت Ollama..."
-curl -fsSL https://ollama.com/install.sh | sh
+echo "📦 تثبيت Ollama..."
+curl -fsSL https://ollama.com/install.sh | sh || echo "⚠️ فشل تثبيت Ollama - سيُعاد المحاولة لاحقاً"
 
-echo "🔧 جاري تثبيت متطلبات بايثون..."
-if [ -f requirements.txt ]; then
-    pip install --upgrade pip
-    pip install -r requirements.txt
+if [ -f "requirements.txt" ]; then
+    echo "📦 تثبيت مكتبات بايثون من requirements.txt..."
+    pip install --no-cache-dir -r "requirements.txt" || echo "⚠️ فشل بعض المكتبات"
 fi
 
 chmod +x .devcontainer/start.sh || true
-
-echo "✅ تم الإعداد بنجاح"
+echo "✅ انتهى الإعداد الأساسي."
